@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jogo Estilo Mines</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #1e1e2f;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        #controls {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        #controls input {
+            width: 60px;
+            text-align: center;
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background-color: #333;
+            color: #fff;
+        }
+
+        #balance { /* Novo estilo para o saldo */
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #1aff00; /* Cor verde para destaque do saldo */
+            margin-bottom: 15px;
+            background-color: #333;
+            padding: 8px 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
+        }
+
+        #score {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #ffc107;
+        }
+
+        #multiplier, #currentBetInfo {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            grid-gap: 10px;
+            margin-top: 20px;
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #333;
+            border-radius: 6px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 24px;
+            transition: background-color 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .cell:hover:not(.safe):not(.mine):not(.clicked-disabled) { /* Ajuste para hover */
+            background-color: #555;
+        }
+
+        .clicked-disabled { /* Para células clicadas ou game over */
+            cursor: default !important;
+        }
+
+        .safe {
+            background-color: #4caf50;
+            color: white;
+            animation: pop 0.2s ease-out;
+        }
+
+        .mine {
+            background-color: #f44336;
+            color: white;
+            animation: shake 0.3s;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .bet {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .bet:disabled {
+            background-color: #2e7d32;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .cashout {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .cashout:disabled {
+            background-color: #ffeb3b;
+            color: #616161;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogo Estilo Mines</h1>
+
+    <div id="balance">Saldo: <span id="currentBalance">20.00</span> BRL</div>
+
+    <div id="controls">
+        <div>
+            <label for="mineCount">Minas: </label>
+            <input type="number" id="mineCount" min="1" max="24" value="3">
+        </div>
+        <div>
+            <label for="betAmount">Aposta (BRL): </label>
+            <input type="number" id="betAmount" min="1" value="3" step="0.50">
+        </div>
+        <div>
+            <button class="bet" id="betButton" onclick="startGame()">Apostar</button>
+            <button class="cashout" id="cashOutButton" onclick="cashOut()" disabled>Retirar</button>
+        </div>
+    </div>
+
+    <div id="currentBetInfo">Aposta Atual: <span id="currentBet">0.00</span> BRL</div>
+    <div id="multiplier">Multiplicador: <span id="currentMultiplier">1.00x</span></div>
+    <div id="score">Ganhos Potenciais: <span id="potentialWinnings">0.00</span> BRL</div>
+    
+    <div id="grid"></div>
+
+    <script>
+        const gridElement = document.getElementById("grid");
+        const mineCountInput = document.getElementById("mineCount");
+        const betAmountInput = document.getElementById("betAmount");
+        const betButton = document.getElementById("betButton");
+        const cashOutButton = document.getElementById("cashOutButton");
+        const currentBalanceDisplay = document.getElementById("currentBalance");
+        const currentBetDisplay = document.getElementById("currentBet");
+        const currentMultiplierDisplay = document.getElementById("currentMultiplier");
+        const potentialWinningsDisplay = document.getElementById("potentialWinnings");
+
+        let gameActive = false;
+        let cells = [];
+        let mineLocations = new Set();
+        let clickedSafeCells = 0;
+        let currentBet = 0;
+        let currentMultiplier = 1.00;
+        let playerBalance = 20.00; // Valor padrão, será sobrescrito pelo localStorage
+
+        // Sound effects
+        const clickSound = new Audio('click.mp3'); 
+        const mineSound = new Audio('mine_explosion.mp3');
+        const winSound = new Audio('win_sound.mp3');
+
+        const TOTAL_CELLS = 25; // 5x5 grid
+
+        // Função para salvar o saldo no localStorage
+        function saveBalance() {
+            localStorage.setItem('minesPlayerBalance', playerBalance.toFixed(2));
+        }
+
+        // Função para carregar o saldo do localStorage
+        function loadBalance() {
+            const savedBalance = localStorage.getItem('minesPlayerBalance');
+            if (savedBalance !== null) {
+                playerBalance = parseFloat(savedBalance);
+            } else {
+                playerBalance = 20.00; // Saldo inicial se não houver nada salvo
+            }
+        }
+
+        function getMultiplier(safeCellsFound, totalMines) {
+            if (safeCellsFound === 0) return 1.00;
+
+            let currentTotalCells = TOTAL_CELLS;
+            let currentSafeCells = TOTAL_CELLS - totalMines;
+            let currentMultiplierValue = 1.00;
+
+            for (let i = 0; i < safeCellsFound; i++) {
+                currentMultiplierValue *= (currentTotalCells / currentSafeCells);
+                currentTotalCells--;
+                currentSafeCells--;
+            }
+            return currentMultiplierValue;
+        }
+
+        function updateDisplays() {
+            currentBalanceDisplay.textContent = playerBalance.toFixed(2);
+            currentBetDisplay.textContent = currentBet.toFixed(2);
+            currentMultiplierDisplay.textContent = currentMultiplier.toFixed(2) + "x";
+            potentialWinningsDisplay.textContent = (currentBet * currentMultiplier).toFixed(2);
+            saveBalance(); // Salva o saldo sempre que o display é atualizado
+        }
+
+        function disableControls(disable) {
+            mineCountInput.disabled = disable;
+            betAmountInput.disabled = disable;
+            betButton.disabled = disable;
+            cashOutButton.disabled = !disable; // Enable cashout when game is active
+        }
+
+        function generateMines(numMines) {
+            mineLocations.clear();
+            while (mineLocations.size < numMines) {
+                mineLocations.add(Math.floor(Math.random() * TOTAL_CELLS));
+            }
+        }
+
+        function createGrid() {
+            gridElement.innerHTML = "";
+            cells = [];
+            for (let i = 0; i < TOTAL_CELLS; i++) {
+                const cell = document.createElement("div");
+                cell.classList.add("cell");
+                cell.dataset.index = i;
+                cell.dataset.clicked = "false";
+                cell.addEventListener("click", handleCellClick);
+                gridElement.appendChild(cell);
+                cells.push(cell);
+            }
+        }
+
+        function startGame() {
+            if (gameActive) return;
+
+            const numMines = parseInt(mineCountInput.value);
+            const bet = parseFloat(betAmountInput.value);
+
+            if (isNaN(numMines) || numMines < 1 || numMines > 24) {
+                alert("Por favor, insira um número de minas válido (1-24).");
+                return;
+            }
+            if (isNaN(bet) || bet <= 0) {
+                alert("Por favor, insira um valor de aposta válido.");
+                return;
+            }
+            if (bet > playerBalance) {
+                alert(`Saldo insuficiente! Você tem R$ ${playerBalance.toFixed(2)}.`);
+                return;
+            }
+
+            // Subtrai a aposta do saldo
+            playerBalance -= bet;
+            
+            gameActive = true;
+            currentBet = bet;
+            clickedSafeCells = 0;
+            currentMultiplier = 1.00;
+            updateDisplays(); // Atualiza displays incluindo o saldo e salva
+            disableControls(true);
+
+            createGrid();
+            generateMines(numMines);
+        }
+
+        function handleCellClick(event) {
+            if (!gameActive) return;
+
+            const cell = event.target;
+            const cellIndex = parseInt(cell.dataset.index);
+
+            if (cell.dataset.clicked === "true") return;
+
+            cell.dataset.clicked = "true";
+            cell.classList.add("clicked-disabled"); // Adiciona classe para desabilitar hover/cursor
+
+            if (mineLocations.has(cellIndex)) {
+                mineSound.play(); // Toca o som da mina
+                cell.classList.add("mine");
+                cell.textContent = "💣";
+                alert(`Game Over! Você encontrou uma mina e perdeu R$ ${currentBet.toFixed(2)}.`);
+                
+                gameActive = false;
+                revealAll(true);
+                disableControls(false);
+                cashOutButton.disabled = true;
+                currentBet = 0; // Zera a aposta atual
+                currentMultiplier = 1.00; // Reseta o multiplicador
+                updateDisplays(); // Atualiza displays e salva (saldo já foi descontado na aposta)
+            } else {
+                clickSound.play(); // Toca o som de clique
+                cell.classList.add("safe");
+                cell.textContent = "⭐";
+                clickedSafeCells++;
+                currentMultiplier = getMultiplier(clickedSafeCells, parseInt(mineCountInput.value));
+                updateDisplays(); // Atualiza displays e salva
+
+                // Check for win condition (all safe cells found)
+                if (clickedSafeCells === (TOTAL_CELLS - parseInt(mineCountInput.value))) {
+                    const totalWinnings = parseFloat(potentialWinningsDisplay.textContent);
+                    playerBalance += totalWinnings; // Adiciona ganhos ao saldo
+                    winSound.play(); // Toca o som de vitória
+                    alert(`Parabéns! Você encontrou todas as estrelas! Você ganhou R$ ${totalWinnings.toFixed(2)}.`);
+                    
+                    gameActive = false;
+                    revealAll(false); // Revela como safe, já que todas as minas foram evitadas
+                    disableControls(false);
+                    cashOutButton.disabled = true;
+                    currentBet = 0; // Zera a aposta atual
+                    currentMultiplier = 1.00; // Reseta o multiplicador
+                    updateDisplays(); // Atualiza displays e salva
+                }
+            }
+        }
+
+        function cashOut() {
+            if (!gameActive || clickedSafeCells === 0) return;
+
+            const totalWinnings = parseFloat(potentialWinningsDisplay.textContent);
+            playerBalance += totalWinnings; // Adiciona ganhos ao saldo
+            winSound.play(); // Toca o som de vitória
+            alert(`Você retirou R$ ${totalWinnings.toFixed(2)}! Parabéns!`);
+            
+            gameActive = false;
+            revealAll(true); // Revela as minas restantes para o jogador ver
+            disableControls(false);
+            cashOutButton.disabled = true;
+            currentBet = 0; // Zera a aposta atual
+            currentMultiplier = 1.00; // Reseta o multiplicador
+            updateDisplays(); // Atualiza displays e salva
+        }
+
+        function revealAll(showMines) {
+            cells.forEach((cell, index) => {
+                // Remove o event listener para evitar cliques após o fim do jogo
+                cell.removeEventListener("click", handleCellClick);
+                cell.classList.add("clicked-disabled"); // Desabilita o cursor e hover
+
+                if (mineLocations.has(index)) {
+                    cell.classList.add("mine");
+                    cell.textContent = "💣";
+                } else if (!mineLocations.has(index) && showMines === false) {
+                    cell.classList.add("safe");
+                    cell.textContent = "⭐";
+                }
+            });
+        }
+
+        // Initial setup
+        loadBalance(); // Carrega o saldo ao iniciar a página
+        updateDisplays(); // Atualiza o display com o saldo carregado
+        disableControls(false);
+        createGrid();
+    </script>
+</body>
+</html>

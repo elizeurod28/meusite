@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fortune Tiger</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #2c3e50; /* Azul escuro */
+            color: #ecf0f1; /* Quase branco */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden; /* Para garantir que os confetes não causem scroll */
+        }
+
+        h1 {
+            color: #f1c40f; /* Amarelo ouro */
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        #balance {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #2ecc71; /* Verde esmeralda */
+            margin-bottom: 25px;
+            background-color: #34495e;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.5); /* Sombra verde */
+            border: 2px solid #27ae60;
+        }
+
+        #slot-machine {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            background-color: #5d3f6a; /* Tom de roxo/vinho para a base da máquina */
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            border: 5px solid #f1c40f; /* Borda amarela ouro */
+            position: relative; /* Para posicionar o tigre no topo */
+            overflow: hidden;
+        }
+
+        #tiger-header {
+            position: absolute;
+            top: -60px; /* Ajustar para posicionar o tigre acima dos rolos */
+            width: 100%;
+            left: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4em; /* Tamanho do emoji do tigre */
+            padding: 10px 0;
+            color: #f39c12; /* Cor do tigre */
+            text-shadow: 0 0 10px rgba(243, 156, 18, 0.7);
+            /* Considerar uma imagem de fundo aqui para o topo da máquina */
+            background-color: #c0392b; /* Vermelho escuro para a parte superior */
+            border-radius: 15px 15px 0 0;
+            box-shadow: inset 0 -5px 10px rgba(0, 0, 0, 0.3);
+            height: 100px; /* Altura do cabeçalho */
+            box-sizing: border-box;
+            z-index: 1; /* Para ficar por cima */
+            border-bottom: 3px solid #f1c40f;
+        }
+        #tiger-header span {
+            animation: bounceTiger 2s infinite ease-in-out;
+        }
+
+        @keyframes bounceTiger {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .reel {
+            width: 100px;
+            height: 120px;
+            background-color: #2c3e50; /* Azul escuro para o rolo */
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4em; /* Tamanho grande para os símbolos */
+            overflow: hidden; /* Garante que apenas um símbolo seja visível */
+            position: relative; /* Para a animação */
+            border: 2px solid #ecf0f1;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 2; /* Para ficar sobre o cabeçalho do tigre */
+        }
+
+        .symbol {
+            position: absolute;
+            animation: spinReel 0.5s ease-out forwards; /* Animação ao girar */
+            font-size: 1em; /* Redefine o tamanho do símbolo para ser relativo ao .reel */
+        }
+        
+        .spin-animation {
+            animation: spinReel 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+        }
+
+        @keyframes spinReel {
+            0% { transform: translateY(-100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            margin-top: 20px;
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        #controls div {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #betAmountInput {
+            width: 80px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            font-size: 1.1em;
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            font-weight: bold;
+        }
+
+        #spinButton {
+            background-color: #e74c3c; /* Vermelho vibrante */
+            color: white;
+            box-shadow: 0 4px 10px rgba(231, 76, 60, 0.5);
+        }
+
+        #spinButton:hover {
+            background-color: #c0392b;
+        }
+
+        #spinButton:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 5px rgba(231, 76, 60, 0.5);
+        }
+
+        #spinButton:disabled {
+            background-color: #95a5a6; /* Cinza */
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #winningsDisplay {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #f1c40f; /* Amarelo */
+            margin-top: 15px;
+            background-color: #34495e;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
+            min-height: 1.4em; /* Para manter o layout mesmo sem texto */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .back-button {
+            margin-top: 30px;
+            padding: 10px 20px;
+            background-color: #3498db; /* Azul */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            text-decoration: none; /* Para o link <a> */
+            transition: background-color 0.2s;
+        }
+
+        .back-button:hover {
+            background-color: #2980b9;
+        }
+
+        /* Confetti animation */
+        #confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 9999;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f1c40f; /* Amarelo */
+            border-radius: 50%;
+            opacity: 0;
+            animation: fall 3s ease-out forwards;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100vh) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Fortune Tiger</h1>
+
+    <div id="balance">Saldo: <span id="currentBalance">0.00</span> BRL</div>
+
+    <div id="slot-machine">
+        <div id="tiger-header"><span>🐅</span></div> <div class="reel" id="reel1"><span class="symbol"></span></div>
+        <div class="reel" id="reel2"><span class="symbol"></span></div>
+        <div class="reel" id="reel3"><span class="symbol"></span></div>
+    </div>
+
+    <div id="controls">
+        <div>
+            <label for="betAmountInput">Aposta (BRL): </label>
+            <input type="number" id="betAmountInput" min="1" value="1" step="0.50">
+        </div>
+        <button id="spinButton" onclick="spinReels()">Girar</button>
+    </div>
+
+    <div id="winningsDisplay"></div>
+
+    <a href="index.html" class="back-button">Voltar para a Página Principal</a>
+
+    <div id="confetti-container"></div>
+
+    <script>
+        const reels = [
+            document.getElementById('reel1').querySelector('.symbol'),
+            document.getElementById('reel2').querySelector('.symbol'),
+            document.getElementById('reel3').querySelector('.symbol')
+        ];
+        const currentBalanceDisplay = document.getElementById('currentBalance');
+        const betAmountInput = document.getElementById('betAmountInput');
+        const spinButton = document.getElementById('spinButton');
+        const winningsDisplay = document.getElementById('winningsDisplay');
+        const confettiContainer = document.getElementById('confetti-container');
+
+        let playerBalance = 0; // Será carregado do localStorage
+        let isSpinning = false;
+
+        // Símbolos do jogo (usando emojis para tentar simular a referência visual)
+        // Adicionando um símbolo 'Wild' explícito para o tigre
+        const symbols = ['🍊', '🍋', '🍇', '🧧', '🧨', '💰', '👑', '🐯']; // Adicionei '🧧' (envelope vermelho) e '🧨' (fogo de artifício) e '🐯' para Wild
+        
+        // Ponderação dos símbolos para simular a raridade
+        const weightedSymbols = [
+            '🍊', '🍊', '🍊', '🍊', '🍊',
+            '🍋', '🍋', '🍋', '🍋',
+            '🍇', '🍇', '🍇',
+            '🧧', '🧧',
+            '🧨', '🧨',
+            '💰',
+            '👑',
+            '🐯' // O tigre (Wild) é o mais raro e valioso
+        ];
+
+        // Mapeamento de pagamentos: símbolo : valor do multiplicador da aposta
+        // Ajustado para refletir um pouco mais a dinâmica de um caça-níquel
+        const payouts = {
+            '🍊': 2,
+            '🍋': 3,
+            '🍇': 5,
+            '🧧': 8,
+            '🧨': 10,
+            '💰': 20,
+            '👑': 50,
+            '🐯': 100 // O tigre (Wild) com o maior pagamento direto
+        };
+
+        // Sound effects (você precisará desses arquivos na mesma pasta)
+        const spinSound = new Audio('slot_spin.mp3');
+        const winSound = new Audio('slot_win.mp3');
+        const noWinSound = new Audio('slot_no_win.mp3');
+        const bigWinSound = new Audio('slot_big_win.mp3'); // Para o multiplicador x10
+
+        // Função para salvar o saldo no localStorage
+        function saveBalance() {
+            localStorage.setItem('minesPlayerBalance', playerBalance.toFixed(2)); // Usamos a mesma chave
+        }
+
+        // Função para carregar o saldo do localStorage
+        function loadBalance() {
+            const savedBalance = localStorage.getItem('minesPlayerBalance');
+            if (savedBalance !== null) {
+                playerBalance = parseFloat(savedBalance);
+            } else {
+                playerBalance = 20.00; // Saldo inicial se não houver nada salvo
+            }
+        }
+
+        function updateBalanceDisplay() {
+            currentBalanceDisplay.textContent = playerBalance.toFixed(2);
+            saveBalance(); // Salva o saldo sempre que o display é atualizado
+        }
+
+        function getRandomSymbol() {
+            return weightedSymbols[Math.floor(Math.random() * weightedSymbols.length)];
+        }
+
+        async function spinReels() {
+            if (isSpinning) return;
+
+            const betAmount = parseFloat(betAmountInput.value);
+
+            if (isNaN(betAmount) || betAmount <= 0) {
+                alert("Por favor, insira um valor de aposta válido.");
+                return;
+            }
+            if (betAmount > playerBalance) {
+                alert(`Saldo insuficiente! Você tem R$ ${playerBalance.toFixed(2)}.`);
+                return;
+            }
+
+            isSpinning = true;
+            spinButton.disabled = true;
+            betAmountInput.disabled = true;
+            winningsDisplay.textContent = ""; // Limpa a mensagem de ganho anterior
+            clearConfetti(); // Limpa confetes anteriores
+
+            playerBalance -= betAmount; // Deduz a aposta
+            updateBalanceDisplay();
+
+            spinSound.currentTime = 0; // Reinicia o som se for chamado rápido demais
+            spinSound.play(); // Toca o som de giro
+
+            const finalSymbols = [];
+            for (let i = 0; i < 3; i++) {
+                const delay = i * 150; // Aumentei um pouco o delay para melhor efeito
+                setTimeout(() => {
+                    reels[i].classList.add('spin-animation'); // Adiciona classe para animar
+                    const symbol = getRandomSymbol();
+                    reels[i].textContent = symbol;
+                    finalSymbols[i] = symbol; // Armazena o símbolo final
+                }, delay);
+            }
+
+            // Aguarda a animação terminar para todos os rolos
+            setTimeout(() => {
+                reels.forEach(reel => reel.classList.remove('spin-animation')); // Remove a animação
+                spinSound.pause(); // Para o som de giro quando os rolos param
+                checkWin(finalSymbols, betAmount);
+                isSpinning = false;
+                spinButton.disabled = false;
+                betAmountInput.disabled = false;
+            }, 1000); // Aumentei o tempo total para a animação e parada dos rolos
+        }
+
+        function checkWin(resultSymbols, betAmount) {
+            let winAmount = 0;
+            let message = "Que pena, não foi dessa vez!";
+            let isWinningSpin = false;
+            let isBigWin = false;
+
+            // Verifica se todos os símbolos são iguais OU se o tigre (Wild) completa uma combinação
+            // A lógica de Wild simples: '🐯' substitui qualquer símbolo para formar uma sequência de 3
+            if (
+                (resultSymbols[0] === resultSymbols[1] && resultSymbols[1] === resultSymbols[2]) || // 3 iguais
+                (resultSymbols[0] === '🐯' && resultSymbols[1] === resultSymbols[2]) || // Wild + 2 iguais
+                (resultSymbols[1] === '🐯' && resultSymbols[0] === resultSymbols[2]) || // Meio Wild + 2 iguais
+                (resultSymbols[2] === '🐯' && resultSymbols[0] === resultSymbols[1]) || // Fim Wild + 2 iguais
+                (resultSymbols[0] === '🐯' && resultSymbols[1] === '🐯') || // Wild + Wild + qualquer um (pelo menos 2 Wilds)
+                (resultSymbols[1] === '🐯' && resultSymbols[2] === '🐯') // qualquer um + Wild + Wild
+            ) {
+                // Lógica de cálculo de ganho com Wild
+                let actualWinningSymbol = null;
+                if (resultSymbols[0] === resultSymbols[1] && resultSymbols[1] === resultSymbols[2]) {
+                    actualWinningSymbol = resultSymbols[0]; // 3 iguais, usa o próprio
+                } else if (resultSymbols.filter(s => s === '🐯').length >= 2) {
+                    actualWinningSymbol = '🐯'; // Se tem 2 ou 3 Wilds, o ganho é pelo Wild
+                } else if (resultSymbols[0] === '🐯') {
+                    actualWinningSymbol = resultSymbols[1]; // Wild no 1, usa o 2º para combinação
+                } else if (resultSymbols[1] === '🐯') {
+                    actualWinningSymbol = resultSymbols[0]; // Wild no 2, usa o 1º para combinação
+                } else if (resultSymbols[2] === '🐯') {
+                    actualWinningSymbol = resultSymbols[0]; // Wild no 3, usa o 1º para combinação
+                }
+
+                if (actualWinningSymbol && payouts[actualWinningSymbol]) {
+                    winAmount = betAmount * payouts[actualWinningSymbol];
+                    message = `🎉 Vitória! Ganhou R$ ${winAmount.toFixed(2)}!`;
+                    isWinningSpin = true;
+                }
+            }
+
+
+            // Verifica o recurso especial "Tigre da Sorte" (se a tela for preenchida com um mesmo símbolo, incluindo o Wild)
+            // Para um caça-níquel 3x1, isso significa os 3 símbolos iguais, ou 3 Wilds
+            if (resultSymbols[0] === resultSymbols[1] && resultSymbols[1] === resultSymbols[2]) {
+                if (resultSymbols[0] === '🐯') { // Se os três forem tigres
+                    winAmount = betAmount * 500; // Um mega prêmio para 3 tigres!
+                    message = `🐅 TRÊS TIGRES! 🔥 MEGA BÔNUS DE ${winAmount.toFixed(2)} BRL!`;
+                    isBigWin = true;
+                    isWinningSpin = true; // Garante que seja tratado como vitória
+                } else {
+                    // Se 3 símbolos quaisquer são iguais (e não tigre), aplica o multiplicador x10 do "Tigre da Sorte"
+                    winAmount *= 10;
+                    message = `🔥 MEGA VITÓRIA! ${resultSymbols[0]}${resultSymbols[0]}${resultSymbols[0]} - Multiplicador 10x! Ganhou R$ ${winAmount.toFixed(2)}!`;
+                    isBigWin = true;
+                    isWinningSpin = true; // Garante que seja tratado como vitória
+                }
+            }
+
+
+            if (isWinningSpin) {
+                playerBalance += winAmount;
+                if (isBigWin) {
+                    bigWinSound.currentTime = 0;
+                    bigWinSound.play(); // Som de grande vitória
+                } else {
+                    winSound.currentTime = 0;
+                    winSound.play(); // Som de vitória normal
+                }
+                launchConfetti(); // Lança confetes na vitória
+            } else {
+                noWinSound.currentTime = 0;
+                noWinSound.play(); // Toca som de não vitória
+            }
+
+            winningsDisplay.textContent = message;
+            updateBalanceDisplay(); // Salva o saldo atualizado
+        }
+
+        function launchConfetti() {
+            const colors = ['#f1c40f', '#e67e22', '#2ecc71', '#3498db', '#9b59b6', '#e74c3c']; // Cores vibrantes
+            for (let i = 0; i < 50; i++) { // Lança 50 confetes
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                confetti.style.left = `${Math.random() * 100}vw`;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = `${Math.random() * 2 + 3}s`; // Duração entre 3 e 5 segundos
+                confetti.style.animationDelay = `${Math.random() * 0.5}s`; // Pequeno delay
+                confettiContainer.appendChild(confetti);
+
+                // Remover confetes após a animação
+                confetti.addEventListener('animationend', () => {
+                    confetti.remove();
+                });
+            }
+        }
+
+        function clearConfetti() {
+            confettiContainer.innerHTML = '';
+        }
+
+        // Initial setup
+        loadBalance(); // Carrega o saldo ao iniciar
+        updateBalanceDisplay(); // Exibe o saldo carregado
+        
+        // Garante que os sons estejam prontos para tocar rapidamente
+        spinSound.load(); 
+        winSound.load();
+        noWinSound.load();
+        bigWinSound.load();
+    </script>
+</body>
+</html>
